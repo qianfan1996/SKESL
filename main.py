@@ -10,8 +10,8 @@ import torch
 import torch.optim as optim
 from torch.utils.data import DataLoader
 
-from models import PredictModelBertXLNet, PredictModelRoBerta
-from data_loader import load_mosi_pkl, load_mosei_pkl, SentiDatasetBertXLNet, SentiDatasetRoBerta
+from models import PredictModel
+from data_loader import load_mosi_pkl, load_mosei_pkl, SentiDataset
 from utils import set_random_seed, get_parameter_number, get_flops, interval_time
 
 start = time.time()
@@ -23,8 +23,9 @@ parser.add_argument("--num_epoch", type=int, default=200, help="number of epoch"
 parser.add_argument("--batch_size", type=int, default=32, help="batch size")
 parser.add_argument("--learning_rate", type=float, default=0.0001, help="learning rate")
 parser.add_argument("--pretrain_model_epoch", type=int, default=100, help="pretrain model epoch")
-parser.add_argument("--pretrained_language_model_name", type=str, choices=["bert-base-uncased", "bert-large-uncased", "roberta-base", "xlnet-base-cased"],
-                    default="bert-base-uncased")
+parser.add_argument("--pretrained_language_model_name", type=str, choices=["bert-base-uncased", "bert-large-uncased"],
+                    default="bert-base-uncased"
+)
 args = parser.parse_args()
 
 set_random_seed(args.seed)
@@ -51,14 +52,9 @@ else:
 
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
-if "roberta" in args.pretrained_language_model_name:
-    train_data = SentiDatasetRoBerta(train_text, train_audio, train_video, train_label, args.pretrained_language_model_name, device)
-    valid_data = SentiDatasetRoBerta(valid_text, valid_audio, valid_video, valid_label, args.pretrained_language_model_name, device)
-    test_data = SentiDatasetRoBerta(test_text, test_audio, test_video, test_label, args.pretrained_language_model_name, device)
-else:
-    train_data = SentiDatasetBertXLNet(train_text, train_audio, train_video, train_label, args.pretrained_language_model_name, device)
-    valid_data = SentiDatasetBertXLNet(valid_text, valid_audio, valid_video, valid_label, args.pretrained_language_model_name, device)
-    test_data = SentiDatasetBertXLNet(test_text, test_audio, test_video, test_label, args.pretrained_language_model_name, device)
+train_data = SentiDataset(train_text, train_audio, train_video, train_label, args.pretrained_language_model_name, device)
+valid_data = SentiDataset(valid_text, valid_audio, valid_video, valid_label, args.pretrained_language_model_name, device)
+test_data = SentiDataset(test_text, test_audio, test_video, test_label, args.pretrained_language_model_name, device)
 
 train_loader = DataLoader(dataset=train_data, batch_size=args.batch_size, shuffle=True)
 valid_loader = DataLoader(dataset=valid_data, batch_size=args.batch_size, shuffle=False)
@@ -66,22 +62,8 @@ test_loader = DataLoader(dataset=test_data, batch_size=args.batch_size, shuffle=
 
 pretrained_model = torch.load("saved_models/pretrain/{}/model_epoch{}.pth".format(args.pretrained_language_model_name, str(args.pretrain_model_epoch)))
 
-if "roberta" in args.pretrained_language_model_name:
-    model = PredictModelRoBerta(pretrained_model.pretrained_language_model, pretrained_model.crossmodal_encoder, text_dim, fc_dim)
-else:
-    model = PredictModelBertXLNet(pretrained_model.pretrained_language_model, pretrained_model.crossmodal_encoder, text_dim, fc_dim)
+model = PredictModel(pretrained_model.pretrained_language_model, pretrained_model.crossmodal_encoder, text_dim, fc_dim)
 
-# model = torch.load("saved_models/pretrained_model.pth")
-
-# if torch.cuda.device_count() > 1:
-#     print("Using", torch.cuda.device_count(), "GPUs !")
-#     model = nn.DataParallel(model)
-
-# print(model)
-# assert False
-
-# for param in model.module.pretrained_language_model.parameters():
-#     param.requires_grad = False
 for param in model.pretrained_language_model.parameters():
     param.requires_grad = True
 
@@ -93,14 +75,13 @@ params_group = [{"params": model.pretrained_language_model.parameters(), "lr": 0
                 {"params": model.fc2.parameters()}]
 
 optimizer = optim.Adam(params_group, lr=args.learning_rate)
-# optimizer = optim.Adam(filter(lambda p: p.requires_grad, model.parameters()), lr=args.learning_rate)
 
 scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=20)
 
 criterion = torch.nn.L1Loss()
 model = model.to(device)
 
-# input1 = np.array([[101, 254,254,254,254,254,254,254,254,254,254,254,254,254,254,254,254,254,254,254,254,254,254,254,254,254,254,254,254,254,254,254,254,254,254,254,254,254,102]])
+# input1 = np.array([[101, xxx, 102]])
 # input1 = torch.from_numpy(input1).to(device)
 # input2 = torch.zeros((1, 39)).int().to(device)
 # input3 = torch.ones((1, 39)).int().to(device)
@@ -112,24 +93,16 @@ model = model.to(device)
 viz = Visdom()
 viz.line([[0., 0.]], [0], win='train', opts=dict(title='Our train&valid loss', legend=["train loss", "valid loss"]))
 
-def train_epoch(model, iterator, optimizer, criterion, pretrained_language_model_name):
+def train_epoch(model, iterator, optimizer, criterion):
     model.train()
     epoch_loss = 0
     for batch in iterator:
-        if "roberta" in pretrained_language_model_name:
-            input_ids, attention_mask, audio, vision, label = batch
-            input_ids, attention_mask = input_ids.squeeze(), attention_mask.squeeze()
+        input_ids, token_type_ids, attention_mask, audio, vision, label = batch
+        input_ids, token_type_ids, attention_mask = input_ids.squeeze(), token_type_ids.squeeze(), attention_mask.squeeze()
 
-            optimizer.zero_grad()
+        optimizer.zero_grad()
 
-            output = model(input_ids, attention_mask, audio, vision)
-        else:
-            input_ids, token_type_ids, attention_mask, audio, vision, label = batch
-            input_ids, token_type_ids, attention_mask = input_ids.squeeze(), token_type_ids.squeeze(), attention_mask.squeeze()
-
-            optimizer.zero_grad()
-
-            output = model(input_ids, token_type_ids, attention_mask, audio, vision)
+        output = model(input_ids, token_type_ids, attention_mask, audio, vision)
 
         loss = criterion(output, label)
 
@@ -140,19 +113,14 @@ def train_epoch(model, iterator, optimizer, criterion, pretrained_language_model
     return epoch_loss / len(iterator)
 
 
-def valid_epoch(model, iterator, criterion, pretrained_language_model_name):
+def valid_epoch(model, iterator, criterion):
     model.eval()
     epoch_loss = 0
     with torch.no_grad():
         for batch in iterator:
-            if "roberta" in pretrained_language_model_name:
-                input_ids, attention_mask, audio, vision, label = batch
-                input_ids, attention_mask = input_ids.squeeze(), attention_mask.squeeze()
-                output = model(input_ids, attention_mask, audio, vision)
-            else:
-                input_ids, token_type_ids, attention_mask, audio, vision, label = batch
-                input_ids, token_type_ids, attention_mask = input_ids.squeeze(), token_type_ids.squeeze(), attention_mask.squeeze()
-                output = model(input_ids, token_type_ids, attention_mask, audio, vision)
+            input_ids, token_type_ids, attention_mask, audio, vision, label = batch
+            input_ids, token_type_ids, attention_mask = input_ids.squeeze(), token_type_ids.squeeze(), attention_mask.squeeze()
+            output = model(input_ids, token_type_ids, attention_mask, audio, vision)
 
             loss = criterion(output, label)
             epoch_loss += loss.item()
@@ -160,23 +128,17 @@ def valid_epoch(model, iterator, criterion, pretrained_language_model_name):
     return epoch_loss / len(iterator)
 
 
-def test_epoch(model, iterator, pretrained_language_model_name):
+def test_epoch(model, iterator):
     model.eval()
     preds = []
     labels = []
 
     with torch.no_grad():
         for batch in iterator:
-            if "roberta" in pretrained_language_model_name:
-                input_ids, attention_mask, audio, vision, label = batch
-                input_ids, attention_mask = input_ids.squeeze(), attention_mask.squeeze()
+            input_ids, token_type_ids, attention_mask, audio, vision, label = batch
+            input_ids, token_type_ids, attention_mask = input_ids.squeeze(), token_type_ids.squeeze(), attention_mask.squeeze()
 
-                outputs = model(input_ids, attention_mask, audio, vision)
-            else:
-                input_ids, token_type_ids, attention_mask, audio, vision, label = batch
-                input_ids, token_type_ids, attention_mask = input_ids.squeeze(), token_type_ids.squeeze(), attention_mask.squeeze()
-
-                outputs = model(input_ids, token_type_ids, attention_mask, audio, vision)
+            outputs = model(input_ids, token_type_ids, attention_mask, audio, vision)
 
             logits = outputs.detach().cpu().numpy()
             label_ids = label.detach().cpu().numpy()
@@ -193,9 +155,9 @@ def test_epoch(model, iterator, pretrained_language_model_name):
 
     return preds, labels
 
-def test_score(model, iterator, pretrained_language_model_name, use_zero=False):
+def test_score(model, iterator, use_zero=False):
 
-    preds, y_test = test_epoch(model, iterator, pretrained_language_model_name)
+    preds, y_test = test_epoch(model, iterator)
     print(preds[:10], y_test[:10])
     non_zeros = np.array([i for i, e in enumerate(y_test) if e != 0 or use_zero])
 
@@ -217,8 +179,8 @@ max_valid_loss = 999
 
 for epoch in trange(args.num_epoch):
     start_time = time.time()
-    train_loss = train_epoch(model, train_loader, optimizer, criterion, args.pretrained_language_model_name)
-    valid_loss = valid_epoch(model, valid_loader, criterion, args.pretrained_language_model_name)
+    train_loss = train_epoch(model, train_loader, optimizer, criterion)
+    valid_loss = valid_epoch(model, valid_loader, criterion)
     viz.line([[train_loss, valid_loss]], [epoch], win="train", update="append")
     end_time = time.time()
     epoch_mins, epoch_secs = interval_time(start_time, end_time)

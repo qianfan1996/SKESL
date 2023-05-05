@@ -6,16 +6,6 @@ from transformers import AutoConfig, AutoModel
 
 # ---------------------------------------------------------------------------------------------------------------------
 # construct a pre-trained language model
-class PretrainedLanguageModelBertXLNet(nn.Module):
-    def __init__(self, pretrained_language_model_name):
-        super(PretrainedLanguageModelBertXLNet, self).__init__()
-        self.model = AutoModel.from_pretrained(pretrained_language_model_name)
-
-    def forward(self, input_ids, token_type_ids, attention_mask):
-        output = self.model(input_ids=input_ids, token_type_ids=token_type_ids, attention_mask=attention_mask).last_hidden_state
-        return output
-
-
 class PretrainedLanguageModel(nn.Module):
     def __init__(self, pretrained_language_model_name):
         super(PretrainedLanguageModel, self).__init__()
@@ -25,15 +15,6 @@ class PretrainedLanguageModel(nn.Module):
         output = self.model(input_ids=input_ids, token_type_ids=token_type_ids, attention_mask=attention_mask).last_hidden_state
         return output
 
-
-class PretrainedLanguageModelRoBerta(nn.Module):
-    def __init__(self, pretrained_language_model_name):
-        super(PretrainedLanguageModelRoBerta, self).__init__()
-        self.model = AutoModel.from_pretrained(pretrained_language_model_name)
-
-    def forward(self, input_ids, attention_mask):
-        output = self.model(input_ids=input_ids, attention_mask=attention_mask).last_hidden_state
-        return output
 
 # ---------------------------------------------------------------------------------------------------------------------
 # non-verbal information injection, i.e., multimodal fusion
@@ -102,81 +83,6 @@ class CrossmodalEncoder(nn.Module):
 
 # ---------------------------------------------------------------------------------------------------------------------
 # construct a pre-train model which contains a pre-trained language model and a multimodel fusion module
-"""
-class PretrainModel(nn.Module):
-    def __init__(self, pretrained_language_model_name, text_dim, audio_dim, video_dim, embed_dim, fc_dim, num_layers=4, attn_dropout=0.5, fc_dropout=0.5):
-        super(PretrainModel, self).__init__()
-        self.pretrained_language_model = PretrainedLanguageModel(pretrained_language_model_name)
-        self.crossmodal_encoder = CrossmodalEncoder(text_dim, audio_dim, video_dim, embed_dim, num_layers, attn_dropout)
-        self.dropout = nn.Dropout(fc_dropout)
-        self.fc1 = nn.Linear(text_dim, fc_dim)
-        self.fc2 = nn.Linear(fc_dim, 1)
-
-    def feature_extractor(self, text, audio, video):
-        output = self.pretrained_language_model(text)
-        output = self.crossmodal_encoder(output, audio, video)
-        output = torch.mean(output, dim=1)
-        return output
-
-    def fitter(self, x):
-        output = self.fc2(self.dropout(F.relu(self.fc1(x))))
-        return output
-
-    def forward(self, text, audio, video):
-        output = self.feature_extractor(text, audio, video)
-        output = self.fitter(output)
-        return output
-"""
-"""
-class PretrainModel(nn.Module):
-    def __init__(self, pretrained_language_model_name, text_dim, audio_dim, video_dim, embed_dim, fc_dim, num_layers=4, attn_dropout=0.5, fc_dropout=0.5):
-        super(PretrainModel, self).__init__()
-        self.pretrained_language_model = PretrainedLanguageModel(pretrained_language_model_name)
-        self.crossmodal_encoder = CrossmodalEncoder(text_dim, audio_dim, video_dim, embed_dim, num_layers, attn_dropout)
-        self.dropout = nn.Dropout(fc_dropout)
-        self.fc1 = nn.Linear(text_dim, fc_dim)
-        self.fc2 = nn.Linear(fc_dim, 1)
-
-    def feature_extractor(self, text, audio, video):
-        output = self.pretrained_language_model(text)
-        output = self.crossmodal_encoder(output, audio, video)
-        # output = torch.mean(output, dim=1)
-        return output
-
-    def fitter(self, x):
-        output = self.fc2(self.dropout(F.relu(self.fc1(x))))
-        return output
-
-    def forward(self, text, audio, video, index, bs):
-        output = self.feature_extractor(text, audio, video)
-        output = self.fitter(output[torch.tensor(range(bs)),index,:])
-        return output
-"""
-class PretrainModelBertXLNet(nn.Module):
-    def __init__(self, pretrained_language_model_name, text_dim, audio_dim, video_dim, embed_dim, fc_dim, num_layers=4, attn_dropout=0.5, fc_dropout=0.5):
-        super(PretrainModelBertXLNet, self).__init__()
-        self.pretrained_language_model = PretrainedLanguageModelBertXLNet(pretrained_language_model_name)
-        self.crossmodal_encoder = CrossmodalEncoder(text_dim, audio_dim, video_dim, embed_dim, num_layers, attn_dropout)
-        self.dropout = nn.Dropout(fc_dropout)
-        self.fc1 = nn.Linear(text_dim, fc_dim)
-        self.fc2 = nn.Linear(fc_dim, 1)
-
-    def feature_extractor(self, input_ids, token_type_ids, attention_mask, audio, video):
-        output = self.pretrained_language_model(input_ids, token_type_ids, attention_mask)
-        output = self.crossmodal_encoder(output, audio, video)
-        # output = torch.mean(output, dim=1)
-        return output
-
-    def fitter(self, x):
-        output = self.fc2(self.dropout(F.relu(self.fc1(x))))
-        return output
-
-    def forward(self, input_ids, token_type_ids, attention_mask, audio, video, index, bs):
-        output = self.feature_extractor(input_ids, token_type_ids, attention_mask, audio, video)
-        output = self.fitter(output[torch.tensor(range(bs)),index,:])
-        return output
-
-
 class PretrainModel(nn.Module):
     def __init__(self, pretrained_language_model_name, text_dim, audio_dim, video_dim, embed_dim, fc_dim, num_layers=4, attn_dropout=0.5, fc_dropout=0.5):
         super(PretrainModel, self).__init__()
@@ -201,36 +107,12 @@ class PretrainModel(nn.Module):
         output = self.fitter(output[torch.tensor(range(bs)),index,:])
         return output
 
-
-class PretrainModelRoBerta(nn.Module):
-    def __init__(self, pretrained_language_model_name, text_dim, audio_dim, video_dim, embed_dim, fc_dim, num_layers=4, attn_dropout=0.5, fc_dropout=0.5):
-        super(PretrainModelRoBerta, self).__init__()
-        self.pretrained_language_model = PretrainedLanguageModelRoBerta(pretrained_language_model_name)
-        self.crossmodal_encoder = CrossmodalEncoder(text_dim, audio_dim, video_dim, embed_dim, num_layers, attn_dropout)
-        self.dropout = nn.Dropout(fc_dropout)
-        self.fc1 = nn.Linear(text_dim, fc_dim)
-        self.fc2 = nn.Linear(fc_dim, 1)
-
-    def feature_extractor(self, input_ids, attention_mask, audio, video):
-        output = self.pretrained_language_model(input_ids, attention_mask)
-        output = self.crossmodal_encoder(output, audio, video)
-        # output = torch.mean(output, dim=1)
-        return output
-
-    def fitter(self, x):
-        output = self.fc2(self.dropout(F.relu(self.fc1(x))))
-        return output
-
-    def forward(self, input_ids, attention_mask, audio, video, index, bs):
-        output = self.feature_extractor(input_ids, attention_mask, audio, video)
-        output = self.fitter(output[torch.tensor(range(bs)),index,:])
-        return output
 
 # ---------------------------------------------------------------------------------------------------------------------
 # just use pre-trained language model without non-verbal information for infering the sentiment
-class LanguageModelClassifierBertXLNet(nn.Module):
+class LanguageModelClassifier(nn.Module):
     def __init__(self, pretrained_language_model, text_dim, fc_dim, fc_dropout=0.5):
-        super(LanguageModelClassifierBertXLNet, self).__init__()
+        super(LanguageModelClassifier, self).__init__()
         self.pretrained_language_model = pretrained_language_model
         self.dropout = nn.Dropout(fc_dropout)
         self.fc1 = nn.Linear(text_dim, fc_dim)
@@ -248,30 +130,11 @@ class LanguageModelClassifierBertXLNet(nn.Module):
         return output
 
 
-class LanguageModelClassifierRoBerta(nn.Module):
-    def __init__(self, pretrained_language_model, text_dim, fc_dim, fc_dropout=0.5):
-        super(LanguageModelClassifierRoBerta, self).__init__()
-        self.pretrained_language_model = pretrained_language_model
-        self.dropout = nn.Dropout(fc_dropout)
-        self.fc1 = nn.Linear(text_dim, fc_dim)
-        self.fc2 = nn.Linear(fc_dim, 1)
-
-    def predict(self, x):
-        output = self.fc2(self.dropout(F.relu(self.fc1(x))))
-        return output
-
-    def forward(self, input_ids, attention_mask):
-        output = self.pretrained_language_model(input_ids, attention_mask)
-        output = torch.mean(output, dim=1)
-        # output = output[:, 0, :]
-        output = self.predict(output)
-        return output
-
 # ---------------------------------------------------------------------------------------------------------------------
 # After pre-training, fine-tuning the model with labeled data
-class PredictModelBertXLNet(nn.Module):
+class PredictModel(nn.Module):
     def __init__(self, pretrained_language_model, crossmodal_encoder, text_dim, fc_dim, fc_dropout=0.5):
-        super(PredictModelBertXLNet, self).__init__()
+        super(PredictModel, self).__init__()
         self.pretrained_language_model = pretrained_language_model
         self.crossmodal_encoder = crossmodal_encoder
         self.dropout = nn.Dropout(fc_dropout)
@@ -284,28 +147,6 @@ class PredictModelBertXLNet(nn.Module):
 
     def forward(self, input_ids, token_type_ids, attention_mask, audio, video):
         output = self.pretrained_language_model(input_ids, token_type_ids, attention_mask)
-        output = self.crossmodal_encoder(output, audio, video)
-        output = torch.mean(output, dim=1)
-        # output = output[:,0,:]
-        output = self.predict(output)
-        return output
-
-
-class PredictModelRoBerta(nn.Module):
-    def __init__(self, pretrained_language_model, crossmodal_encoder, text_dim, fc_dim, fc_dropout=0.5):
-        super(PredictModelRoBerta, self).__init__()
-        self.pretrained_language_model = pretrained_language_model
-        self.crossmodal_encoder = crossmodal_encoder
-        self.dropout = nn.Dropout(fc_dropout)
-        self.fc1 = nn.Linear(text_dim, fc_dim)
-        self.fc2 = nn.Linear(fc_dim, 1)
-
-    def predict(self, x):
-        output = self.fc2(self.dropout(F.relu(self.fc1(x))))
-        return output
-
-    def forward(self, input_ids, attention_mask, audio, video):
-        output = self.pretrained_language_model(input_ids, attention_mask)
         output = self.crossmodal_encoder(output, audio, video)
         output = torch.mean(output, dim=1)
         # output = output[:,0,:]
