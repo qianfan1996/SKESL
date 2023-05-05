@@ -20,7 +20,7 @@ $ pip install -r requirements.txt
 ```
 
 ## 3. Datasets
-Downloading the processed datasets from [Google Drive](https://drive.google.com/drive/my-drive), 
+Downloading the processed datasets from [Google Drive](https://drive.google.com/drive/folders/1xnIan0EC1YDLIyNt0MHVWN_mYVfpNXOJ?usp=sharing), 
 and putting them into data/CMU-MOSI, data/CMU-MOSEI and data/EmoVoxCeleb.
 You can also process raw datasets by yourself.
 
