@@ -1,6 +1,7 @@
 # -*-coding:utf-8-*- 
 import numpy as np
 import time
+import os
 import argparse
 from tqdm import trange
 from sklearn.metrics import accuracy_score, f1_score
@@ -58,7 +59,7 @@ test_loader = DataLoader(dataset=test_data, batch_size=args.batch_size, shuffle=
 pretrained_language_model = PretrainedLanguageModel(args.pretrained_language_model_name)
 model = LanguageModelClassifier(pretrained_language_model, text_dim, fc_dim)
 
-print("Total parameters: {}, Trainable parameters: {}".format(*get_parameter_number(model)))
+print("\033[1;35mTotal parameters: {}, Trainable parameters: {}\033[0m".format(*get_parameter_number(model)))
 
 optimizer = optim.Adam(filter(lambda p: p.requires_grad, model.parameters()), lr=args.learning_rate)
 
@@ -67,8 +68,8 @@ optimizer = optim.Adam(filter(lambda p: p.requires_grad, model.parameters()), lr
 criterion = torch.nn.L1Loss()
 model = model.to(device)
 
-viz = Visdom()
-viz.line([[0., 0.]], [0], win='LMClassifier', opts=dict(title='LM train&valid loss', legend=["train loss", "valid loss"]))
+# viz = Visdom()
+# viz.line([[0., 0.]], [0], win='LMClassifier', opts=dict(title='LM train&valid loss', legend=["train loss", "valid loss"]))
 
 def train_epoch(model, iterator, optimizer, criterion):
     model.train()
@@ -151,13 +152,18 @@ def test_score(model, iterator, use_zero=False):
 
     return acc, f_score, mae, corr
 
+if not os.path.exists("saved_models/prediction/mosi/LM"):
+    os.makedirs("saved_models/prediction/mosi/LM")
+if not os.path.exists("saved_models/prediction/mosei/LM"):
+    os.makedirs("saved_models/prediction/mosei/LM")
+
 max_valid_loss = 999
 
 for epoch in trange(args.num_epoch):
     start_time = time.time()
     train_loss = train_epoch(model, train_loader, optimizer, criterion)
     valid_loss = valid_epoch(model, valid_loader, criterion)
-    viz.line([[train_loss, valid_loss]], [epoch], win="LMClassifier", update="append")
+    # viz.line([[train_loss, valid_loss]], [epoch], win="LMClassifier", update="append")
     end_time = time.time()
     epoch_mins, epoch_secs = interval_time(start_time, end_time)
     print("Epoch: {} | Train Loss: {} | Validation Loss: {} | Time: {}m {}s".format(epoch + 1, train_loss, valid_loss, epoch_mins, epoch_secs))

@@ -1,7 +1,5 @@
 # -*-coding:utf-8-*-
 import os
-import numpy as np
-import pickle
 import time
 import argparse
 from tqdm import tqdm, trange
@@ -12,7 +10,7 @@ import torch.optim as optim
 from torch.utils.data import DataLoader
 
 from models import PretrainModel
-from data_loader import load_lexicon, PretrainDataset
+from data_loader import load_lexicon, PretrainDataset, load_emovoxceleb_pkl
 from utils import set_random_seed, get_parameter_number, interval_time
 
 start = time.time()
@@ -39,9 +37,7 @@ embed_dim = 256
 fc_dim = 256
 to_save_epoch = [1, 5, 10, 20, 50, 100]
 
-raw_text = pickle.load(open("data/EmoVoxCeleb/texts.pkl", "rb"))
-audio_data = np.load("data/EmoVoxCeleb/audio_embeddings.npy")
-video_data = np.load("data/EmoVoxCeleb/face_embeddings.npy")
+raw_text, audio_data, video_data = load_emovoxceleb_pkl("data/EmoVoxCeleb/emovoxceleb.pkl")
 lexicon = load_lexicon("data/vader_lexicon.txt")
 
 tokenizer_name = args.pretrained_language_model_name
@@ -59,7 +55,7 @@ model = PretrainModel(args.pretrained_language_model_name, text_dim, audio_dim, 
 for param in model.pretrained_language_model.parameters():
     param.requires_grad = False
 
-print("Total parameters: {}, Trainable parameters: {}".format(*get_parameter_number(model)))
+print("\033[1;35mTotal parameters: {}, Trainable parameters: {}\033[0m".format(*get_parameter_number(model)))
 
 optim = optim.Adam(filter(lambda p: p.requires_grad, model.parameters()), lr=args.learning_rate)
 

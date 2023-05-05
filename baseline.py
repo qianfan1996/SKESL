@@ -1,6 +1,7 @@
 # -*-coding:utf-8-*- 
 import numpy as np
 import time
+import os
 import argparse
 from tqdm import trange
 from sklearn.metrics import accuracy_score, f1_score
@@ -49,7 +50,6 @@ else:
 
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
-
 train_data = SentiDataset(train_text, train_audio, train_video, train_label, args.pretrained_language_model_name, device)
 valid_data = SentiDataset(valid_text, valid_audio, valid_video, valid_label, args.pretrained_language_model_name, device)
 test_data = SentiDataset(test_text, test_audio, test_video, test_label, args.pretrained_language_model_name, device)
@@ -62,7 +62,7 @@ pretrained_language_model = PretrainedLanguageModel(args.pretrained_language_mod
 crossmodal_encoder = CrossmodalEncoder(text_dim, audio_dim, video_dim, embed_dim)
 model = PredictModel(pretrained_language_model, crossmodal_encoder, text_dim, fc_dim)
 
-print("Total parameters: {}, Trainable parameters: {}".format(*get_parameter_number(model)))
+print("\033[1;35mTotal parameters: {}, Trainable parameters: {}\033[0m".format(*get_parameter_number(model)))
 
 optimizer = optim.Adam(filter(lambda p: p.requires_grad, model.parameters()), lr=args.learning_rate)
 
@@ -71,8 +71,8 @@ optimizer = optim.Adam(filter(lambda p: p.requires_grad, model.parameters()), lr
 criterion = torch.nn.L1Loss()
 model = model.to(device)
 
-viz = Visdom()
-viz.line([[0., 0.]], [0], win='baseline', opts=dict(title='baseline train&valid loss', legend=["train loss", "valid loss"]))
+# viz = Visdom()
+# viz.line([[0., 0.]], [0], win='baseline', opts=dict(title='baseline train&valid loss', legend=["train loss", "valid loss"]))
 
 def train_epoch(model, iterator, optimizer, criterion):
     model.train()
@@ -155,13 +155,18 @@ def test_score(model, iterator, use_zero=False):
 
     return acc, f_score, mae, corr
 
+if not os.path.exists("saved_models/prediction/mosi/baseline"):
+    os.makedirs("saved_models/prediction/mosi/baseline")
+if not os.path.exists("saved_models/prediction/mosei/baseline"):
+    os.makedirs("saved_models/prediction/mosei/baseline")
+
 max_valid_loss = 999
 
 for epoch in trange(args.num_epoch):
     start_time = time.time()
     train_loss = train_epoch(model, train_loader, optimizer, criterion)
     valid_loss = valid_epoch(model, valid_loader, criterion)
-    viz.line([[train_loss, valid_loss]], [epoch], win="baseline", update="append")
+    # viz.line([[train_loss, valid_loss]], [epoch], win="baseline", update="append")
     end_time = time.time()
     epoch_mins, epoch_secs = interval_time(start_time, end_time)
     print("Epoch: {} | Train Loss: {} | Validation Loss: {} | Time: {}m {}s".format(epoch + 1, train_loss, valid_loss, epoch_mins, epoch_secs))

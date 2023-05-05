@@ -20,7 +20,8 @@ $ pip install -r requirements.txt
 ```
 
 ## 3. Datasets
-Downloading the processed datasets from [Google Drive](https://drive.google.com/drive/my-drive), and putting them into data/CMU-MOSI, data/CMU-MOSEI, data/EmoVoxCeleb.
+Downloading the processed datasets from [Google Drive](https://drive.google.com/drive/my-drive), 
+and putting them into data/CMU-MOSI, data/CMU-MOSEI and data/EmoVoxCeleb.
 You can also process raw datasets by yourself.
 
 Raw pretraining datasets can be acquired in [this website](https://www.robots.ox.ac.uk/~vgg/data/voxceleb) 
@@ -38,6 +39,7 @@ $ CUDA_VISIBLE_DEVICES=0 python baseline.py
 You can change command line arguments to train different models on different datasets and backbone language models.
 
 ### 4.2 pretraining
+Sentiment knowledge enhanced pretraining.
 ```bash
 $ CUDA_VISIBLE_DEVICES=0 python pretrain.py
 ```
@@ -52,4 +54,4 @@ You can change command line arguments to train different models on different dat
 ```bash
 $ CUDA_VISIBLE_DEVICES=0 python main.py
 ```
-You can change command line arguments to train different models on different datasets and backbone language models.
+You can change command line arguments to train different models on different datasets, backbone language models, and pretraining models.
