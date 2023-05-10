@@ -41,7 +41,7 @@ def load_emovoxceleb_pkl(file_path):
 def load_lexicon(path):
     with open(path, "r") as file:
         lexicon = {line.split()[0]: line.split()[1] for line in file.readlines()}
-        # The following 4 words are phrases in the vader lexicon
+
     return lexicon
 
 
