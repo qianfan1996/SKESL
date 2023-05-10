@@ -42,10 +42,6 @@ def load_lexicon(path):
     with open(path, "r") as file:
         lexicon = {line.split()[0]: line.split()[1] for line in file.readlines()}
         # The following 4 words are phrases in the vader lexicon
-        lexicon['fed'] = '-1.8'
-        lexicon['screwed'] = '-2.2'
-        lexicon['('] = '0.0'
-        lexicon["can't"] = '-2.0'
     return lexicon
 
 
