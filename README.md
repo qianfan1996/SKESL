@@ -23,10 +23,11 @@ $ pip install -r requirements.txt
 Downloading the processed datasets from [Google Drive](https://drive.google.com/drive/folders/1xnIan0EC1YDLIyNt0MHVWN_mYVfpNXOJ?usp=sharing) 
 (Limited by the size of the network disk, we only release VoxCeleb1 and CMU-MOSI datasets), 
 and putting them into data/CMU-MOSI, data/CMU-MOSEI, data/EmoVoxCeleb, and data/VoxCeleb2.
-You can also process raw datasets by yourself.
+In addition, you can also process raw datasets by yourself.
 
 Raw pretraining datasets VoxCeleb1 and VoxCeleb2 can be acquired in [this website](https://www.robots.ox.ac.uk/~vgg/data/voxceleb) 
 (You may need to apply for an account and password to get permission to download).
+Raw CMU-MOSI and CMU-MOSEI datasets can be acquired in [this website](http://immortal.multicomp.cs.cmu.edu/raw_datasets).
 
 About processing raw datasets, see [data/CMU-MOSI](https://github.com/qianfan1996/SKESL/tree/main/data/CMU-MOSI) and [data/EmoVoxCeleb](https://github.com/qianfan1996/SKESL/tree/main/data/EmoVoxCeleb)
 for relevant codes.
