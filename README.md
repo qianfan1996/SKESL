@@ -1,5 +1,5 @@
-# SKESL
-Sentiment Knowledge Enhanced Self-supervised Learning for Multimodal Sentiment Analysis
+# Sentiment Knowledge Enhanced Self-supervised Learning for Multimodal Sentiment Analysis
+Code for the [ACL 2023](https://2023.aclweb.org) Findings paper
 
 ![The framework of SKESL](imgs/framework.jpg)
 
